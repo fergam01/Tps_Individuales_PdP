@@ -11,35 +11,38 @@ data Participante = Unparticipante{
     acciones    :: [Acciones]
 }deriving (Show)
 
+modificarDinero :: Int -> Acciones
+modificarDinero valor unparticipante = unparticipante {dinero = (+) (dinero unparticipante) valor}
+
 pagarAAccionistas :: Acciones
 pagarAAccionistas unparticipante
- |tactica unparticipante == "Accionista" = unparticipante {dinero = dinero unparticipante + 200}
- |otherwise                              = unparticipante {dinero = dinero unparticipante - 100 }
+ |tactica unparticipante == "Accionista" = modificarDinero 200 unparticipante
+ |otherwise                              = modificarDinero (-100) unparticipante
 
 enojarse :: Acciones
-enojarse unparticipante = unparticipante {dinero= dinero unparticipante + 50, acciones = acciones unparticipante ++ [gritar] }
+enojarse = (\unparticipante -> unparticipante {acciones = acciones unparticipante ++ [gritar]}).modificarDinero 50
 
 pasarPorElBanco :: Acciones
-pasarPorElBanco unparticipante = unparticipante {dinero= dinero unparticipante + 40, tactica = "Comprador compulsivo" }
+pasarPorElBanco unparticipante = (\unparticipante -> unparticipante {tactica = "Comprador compulsivo"}).modificarDinero 40 $unparticipante
 
 gritar :: Acciones
 gritar unparticipante = unparticipante {nombre= "AHHHH" ++ nombre unparticipante}
 
 subastar :: Propiedad -> Acciones
 subastar propiedad unparticipante 
- |tactica unparticipante == "Accionista" || tactica unparticipante == "Oferente singular" = unparticipante {dinero= dinero unparticipante - (snd propiedad), propiedades= propiedades unparticipante ++ [propiedad]}
+ |elem (tactica unparticipante) ["Accionista","Oferente singular"] = (\unparticipante->unparticipante {propiedades= propiedades unparticipante ++ [propiedad]}).modificarDinero (-(snd propiedad)) $unparticipante
  |otherwise                                                                               = unparticipante
- 
-cobrarAlquileres :: Acciones
-cobrarAlquileres unparticipante = unparticipante {dinero = dinero unparticipante + (10 * length ( filter (<150) (map snd (propiedades unparticipante)))) + (20 * length ( filter (>150) (map snd (propiedades unparticipante))))}
 
-sumarDiez :: Acciones
-sumarDiez unparticipante = unparticipante{dinero = dinero unparticipante + 10}
+calcularAlquilerBaraOtoCaro :: (Int -> Bool) -> Participante -> Int
+calcularAlquilerBaraOtoCaro valor unparticipante = 10 * length ( filter (valor) (map snd (propiedades unparticipante)))
+
+cobrarAlquileres :: Acciones
+cobrarAlquileres unparticipante = (modificarDinero (calcularAlquilerBaraOtoCaro (<150) unparticipante)).(modificarDinero (calcularAlquilerBaraOtoCaro (>=150) unparticipante)) $unparticipante
 
 hacerBerrinche :: Propiedad ->Acciones
 hacerBerrinche propiedad unparticipante
  |dinero unparticipante >= (snd propiedad) = unparticipante {dinero = dinero unparticipante - (snd propiedad), propiedades = propiedades unparticipante ++ [propiedad]}
- |otherwise = (hacerBerrinche propiedad).gritar.sumarDiez $unparticipante
+ |otherwise = (hacerBerrinche propiedad).gritar.modificarDinero 10 $unparticipante
 
 ultimaRonda :: Participante -> Acciones
 ultimaRonda unparticipante = foldr1 (.) (acciones unparticipante)
@@ -51,16 +54,16 @@ juegoFinal unparticipante1 unparticipante2
 
 --Modelos:
 carolina :: Participante
-carolina = (Unparticipante "Carolina" 501 "Accionista" [] [pagarAAccionistas,hacerBerrinche propiedad1,cobrarAlquileres])
+carolina = (Unparticipante "Carolina" 500 "Accionista" [] [pagarAAccionistas,hacerBerrinche propiedad1,cobrarAlquileres])
 
 manuel :: Participante
 manuel = (Unparticipante "Manuel" 500 "Oferente singular" [] [enojarse,hacerBerrinche propiedad2,cobrarAlquileres])
 
 propiedad1 :: Propiedad
-propiedad1 = ("Casita en miami",1000)
+propiedad1 = ("Mansion en miameeee",1000)
 
 propiedad2 :: Propiedad
-propiedad2 = ("Casita en Dubai",510)
+propiedad2 = ("El Hilton",610)
 
 propiedad3 :: Propiedad
-propiedad3 = ("Casita precaria",100)
+propiedad3 = ("Casita precaria",50)
