@@ -14,6 +14,9 @@ data Participante = Unparticipante{
 modificarDinero :: Int -> Acciones
 modificarDinero valor unparticipante = unparticipante {dinero = (+) (dinero unparticipante) valor}
 
+agregarPropiedad :: Propiedad -> Acciones
+agregarPropiedad propiedad unparticipante = unparticipante{propiedades= propiedades unparticipante ++ [propiedad]}
+
 pagarAAccionistas :: Acciones
 pagarAAccionistas unparticipante
  |tactica unparticipante == "Accionista" = modificarDinero 200 unparticipante
@@ -23,15 +26,15 @@ enojarse :: Acciones
 enojarse = (\unparticipante -> unparticipante {acciones = acciones unparticipante ++ [gritar]}).modificarDinero 50
 
 pasarPorElBanco :: Acciones
-pasarPorElBanco unparticipante = (\unparticipante -> unparticipante {tactica = "Comprador compulsivo"}).modificarDinero 40 $unparticipante
+pasarPorElBanco unparticipante = (\tacticaParticipante -> tacticaParticipante {tactica = "Comprador compulsivo"}).modificarDinero 40 $unparticipante
 
 gritar :: Acciones
 gritar unparticipante = unparticipante {nombre= "AHHHH" ++ nombre unparticipante}
 
 subastar :: Propiedad -> Acciones
 subastar propiedad unparticipante 
- |elem (tactica unparticipante) ["Accionista","Oferente singular"] = (\unparticipante->unparticipante {propiedades= propiedades unparticipante ++ [propiedad]}).modificarDinero (-(snd propiedad)) $unparticipante
- |otherwise                                                                               = unparticipante
+ |elem (tactica unparticipante) ["Accionista","Oferente singular"] = (agregarPropiedad propiedad).modificarDinero (-(snd propiedad)) $unparticipante
+ |otherwise                                                        = unparticipante
 
 calcularAlquilerBaraOtoCaro :: (Int -> Bool) -> Participante -> Int
 calcularAlquilerBaraOtoCaro valor unparticipante = 10 * length ( filter (valor) (map snd (propiedades unparticipante)))
@@ -41,7 +44,7 @@ cobrarAlquileres unparticipante = (modificarDinero (calcularAlquilerBaraOtoCaro 
 
 hacerBerrinche :: Propiedad ->Acciones
 hacerBerrinche propiedad unparticipante
- |dinero unparticipante >= (snd propiedad) = unparticipante {dinero = dinero unparticipante - (snd propiedad), propiedades = propiedades unparticipante ++ [propiedad]}
+ |dinero unparticipante >= (snd propiedad) = (agregarPropiedad propiedad).modificarDinero (-(snd propiedad)) $unparticipante
  |otherwise = (hacerBerrinche propiedad).gritar.modificarDinero 10 $unparticipante
 
 ultimaRonda :: Participante -> Acciones
